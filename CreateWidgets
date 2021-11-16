@@ -1,0 +1,278 @@
+    'GUI Helper written by Jim Brossman maeknarr@yahoo.com
+    'Released into the public domain
+    'Version 1.0   1/21/2008
+    'This program is useful when trying to create multiple controls
+    'at one time without having to use the copy section in FreeForm.
+    'Instructions for the program are at the end of the program.
+GLOBAL rownumber
+    nomainwin
+    WindowWidth = 600
+    WindowHeight = 800
+    UpperLeftX=int((DisplayWidth-WindowWidth)/2)
+    UpperLeftY=int((DisplayHeight-WindowHeight)/2)
+    statictext #main, "How Many", 15, 5, 85, 25
+    textbox #main.tb1, 130, 0, 40, 25
+    stylebits #main.tb1,_ES_NUMBER,0,0,0 'Set textbox to accept whole numbers only
+    statictext #main, "Length", 15, 40, 85, 25
+    textbox #main.tb2, 130, 35, 40, 25
+    stylebits #main.tb2,_ES_NUMBER,0,0,0
+    statictext #main, "Height", 15, 75, 85, 25
+    textbox #main.tb3, 130, 70, 40, 25
+    stylebits #main.tb3,_ES_NUMBER,0,0,0
+    statictext #main, "Starting X Location", 15, 105, 85, 40
+    textbox #main.tb4, 130, 105,  40,  25
+    stylebits #main.tb4,_ES_NUMBER,0,0,0
+    statictext #main, "Starting Y Location", 15, 142, 85, 40
+    textbox #main.tb5, 130, 140, 40, 25
+    stylebits #main.tb5,_ES_NUMBER,0,0,0
+    statictext #main, "Spacing", 15, 180, 85, 25
+    textbox #main.tb6, 130, 175, 40, 25
+    stylebits #main.tb6,_ES_NUMBER,0,0,0
+    statictext #main, "Window Handle", 15, 215, 110, 25
+    textbox #main.tb7, 130, 210, 100, 25
+    button #main.b2,"Create Textboxes",[textboxes], UL, 410,  2, 140,  25
+    button #main.b1,"Create Buttons",[buttons], UL,        410,  32, 140,  25
+    button #main.b3,"Create Radiobuttons",[radiobuttons], UL, 410, 62, 140,  25
+    button #main.b4,"Create Checkboxes",[checkboxes], UL, 410, 92, 140,  25
+    button #main.b5,"Create Statictext",[statictext], UL, 410, 122, 140,  25
+    button #main.b6,"Clear All", [clearall],UL, 410, 152, 140, 25
+      button #main.b7,"Clip Boardl", [selectall],UL, 410, 182, 140, 25
+    texteditor #main.te, 10, 250, 575, 355
+    texteditor #main.ftr, 10, 610, 575, 125
+
+    open "GUI Helper" for window_nf as #main
+    print #main, "font Arial 10 Bold"
+    print #main, "trapclose [quit.main]"
+    'Get handles of textboxes.  Needed to make Enter key move between boxes.
+    hTextbox1=hwnd(#main.tb1)
+    hTextbox2=hwnd(#main.tb2)
+    hTextbox3=hwnd(#main.tb3)
+    hTextbox4=hwnd(#main.tb4)
+    hTextbox5=hwnd(#main.tb5)
+    hTextbox6=hwnd(#main.tb6)
+    hTextbox7=hwnd(#main.tb7)
+
+    [clearall]
+    for hv=1 to 7 'Clear all text boxes
+        var$="#main."+word$("tb1 tb2 tb3 tb4 tb5 tb6 tb7",hv)
+        #var$ ""
+    next
+    'Set the number of controls to create.  These varibles will allow
+    'the user to create controls and then create more controls so the
+    'indexing will be done correctly.
+    tbnumber=1
+    bnumber=1
+    rbnumber=1
+    cbnumber=1
+    stnumber=1
+    rownumber=1  'This varible is used in the texteditor to keep
+                 'track of which line to print the output to.
+    print #main.te,"!cls"
+    call PrintHeader
+    timer 50, [enterkey] 'Turn timer on so program checks for Enter key presses.
+
+    [loop]
+    #main.tb1, "!setfocus"
+    wait
+
+    [enterkey]
+    'Check to see if Enter key was pressed.
+    CallDLL #user32, "GetAsyncKeyState",_VK_RETURN as long,fKeyPress as long
+    if fKeyPress <0 then 'If Enter key is pressed
+        calldll #user32,"GetFocus",textboxHandle as ulong
+        'Depending on which textbox has focus when Enter key is pressed
+        'set the focus to the next textbox.
+        select case textboxHandle
+            case hTextbox1 'If textbox 1 has focus, set focus to textbox 2.
+                #main.tb2,"!setfocus"
+            case hTextbox2
+                #main.tb3,"!setfocus"
+            case hTextbox3
+                #main.tb4,"!setfocus"
+            case hTextbox4
+                #main.tb5,"!setfocus"
+            case hTextbox5
+                #main.tb6,"!setfocus"
+            case hTextbox6
+                #main.tb7,"!setfocus"
+            case hTextbox7
+                #main.tb7,"!setfocus"
+        end select
+    end if
+    wait
+
+    [textboxes] 'Set control conditions for textboxes.
+    gosub [checkdata]    'Check to see if all textboxes are filled in.
+    if flag then wait  'If all textboxes are not filled in.
+    control$="textbox"   'Name of control.
+    extension$="tb"      'Extension of control.
+    start=tbnumber       'Start set to number of controls desired.
+    gosub [createcontrol]
+    tbnumber=tbnumber+number 'Set number of controls to number already created.
+'    gosub [insertfooter]
+    goto [loop]
+
+    [buttons] 'Set control conditions for buttons.
+    gosub [checkdata]
+    if flag then wait
+    control$="button"
+    extension$="b"
+    start=bnumber
+    gosub [createcontrol]
+    bnumber=bnumber+number
+    goto [loop]
+
+    [radiobuttons] 'Set control conditions for radioboxes.
+    gosub [checkdata]
+    if flag then wait
+    control$="radiobutton"
+    extension$="rb"
+    start=rbnumber
+    gosub [createcontrol]
+    rbnumber=rbnumber+number
+    goto [loop]
+
+    [checkboxes] 'Set control conditions for checkboxes.
+    gosub [checkdata]
+    if flag then wait
+    control$="checkbox"
+    extension$="cb"
+    start=cbnumber
+    gosub [createcontrol]
+    cbnumber=cbnumber+number
+    goto [loop]
+
+    [statictext] 'Set control conditions for statictext.
+    gosub [checkdata]
+    if flag then wait
+    control$="statictext"
+    extension$="st"
+    start=stnumber
+    gosub [createcontrol]
+    stnumber=stnumber+number
+    goto [loop]
+
+    [checkdata]  'Retreive data and check to see if all textboxes have been
+                 'filled in before creating any controls. If a textbox is not
+                 'filled in, focus will be set to that textbox.
+    flag=0       'Flag set to 0, a 1 = some textbox is not filled in.
+    #main.tb1, "!contents? number$":number=val(number$)
+    if number$="" then #main.tb1, "!setfocus":flag=1:return
+    #main.tb2, "!contents? length$"
+    if length$="" then #main.tb2, "!setfocus":flag=1:return
+    #main.tb3, "!contents? height$":height=val(height$)
+    if height$="" then #main.tb3, "!setfocus":flag=1:return
+    #main.tb4, "!contents? xlocation$"
+    if xlocation$="" then #main.tb4, "!setfocus":flag=1:return
+    #main.tb5, "!contents? ylocation$":ylocation=val(ylocation$)
+    if ylocation$="" then #main.tb5, "!setfocus":flag=1:return
+    #main.tb6, "!contents? spacing$":spacing=val(spacing$)
+    if spacing$="" then #main.tb6, "!setfocus":flag=1:return
+    #main.tb7, "!contents? windowname$"
+    if windowname$="" then #main.tb7, "!setfocus":flag=1
+    return
+
+    [createcontrol]  'Create controls
+
+    for a=start to start+number-1
+        select case extension$  'Depending on the extension, set conditions.
+            case "b" 'buttons
+                label$=chr$(34)+"button"+str$(a)+chr$(34) 'CHR$(34)="
+                corner$=", [button"+str$(a)+"Click], UL, "
+            case "rb" 'radiobuttons
+                label$=chr$(34)+"radiobutton"+str$(a)+chr$(34)
+                corner$=", [rb"+str$(a)+"Set], [rb"+str$(a)+"Reset], "
+            case "cb" 'checkboxes
+                label$=chr$(34)+"checkbox"+str$(a)+chr$(34)
+                corner$=", [cb"+str$(a)+"Set], [cb"+str$(a)+"Reset], "
+            case "tb" 'textboxes
+                label$=""
+                corner$=""
+            case "st" 'statictext
+                label$=chr$(34)+"statictext"+str$(a)+chr$(34)
+                corner$=", "
+        end select
+        'This line creates the text for the control
+        line$=control$+" #"+windowname$+"."+extension$+str$(a)+_
+        ", "+label$+corner$+xlocation$+", "+str$(ylocation)+", "+length$+", "+height$
+        print #main.te, "!select ";1;" ";rownumber 'Set row in texteditor.
+        print #main.te, "!insert line$" 'Print to the text editor.
+        rownumber=rownumber+1 'Index row number
+        ylocation=ylocation+height+spacing  'Calculate the next Y location.
+    next
+    return
+
+[insertfooter]
+for a = 1 to 10
+#main.te,""
+next
+ftr$="open "+chr$(34)+"My New Program"+chr$(34)+"  for Window as #"+windowname$
+ #main.te, ftr$
+
+  #main.te, "WAIT"
+ #main.te, "#";windowname$; "," ;chr$(34);"!trapclose [quit]";chr$(34)
+
+  #main.te," [quit]"
+  #main.te," close #";windowname$
+  #main.te, "end"
+
+
+
+
+return
+[selectall]
+gosub [insertfooter]
+ #main.te, "!selectall" ;
+ #main.te,"!copy" ;
+wait
+
+    [quit.main]
+    timer 0  'Turn the timer off.  Just good practice.
+    close #main
+    END
+sub PrintHeader
+#main.te, "nomainwin"
+#main.te, "WindowWidth=900"
+#main.te, "WindowHeight=650"
+#main.te, "UpperLeftX=(DisplayWidth-WindowWidth)/2"
+#main.te, "UpperLeftY=(DisplayHeight-WindowHeight)/2"
+rownumber=6
+end sub
+    [Instructions]
+    'This program will allow the user to create multiple controls for textboxes,
+    'buttons, radiobuttons, checkboxes and static text lines. The text that identifies
+    'the button, statictext, radiobutton or checkboxes will ultimately have to
+    'be filled in by the user.  That can be done in the text editor or when
+    'pasted to your program.
+    'The following text boxes will be used to determine how the controls are created.
+    'How Many - How many controls do you want to create.
+    'Length - What is the length of the control in pixels.
+    '           Text boxes, buttons and statictext can be any length.
+    '           radiobuttons and checkboxes must be long enough for the text.
+    'Height - How high do you want the control. Most should be at least 25 pixels
+    'Starting X location? - This will be the X position of the upper left corner
+    '           of the first control.
+    'Starting Y Location? - This will be the Y position of the upper left corner
+    '           of the first control.
+    'Spacing? - This will be the Y spacing between the remaining controls.
+    'Window Handle - This will be the handle of your window.  DO NOT USE THE # SIGN.
+
+    'The buttons will create the output for the selected controls and print the text
+    'to the the texteditor.  Each control will be indexed.  For example, you can create
+    '5 textbox controls and then 5 statictext controls.  You can decide to create
+    '5 more textboxes and they will be indexed correctly except you must change the
+    'Starting Y Location to reflect the correct Y position.  That is the last textbox
+    'Y location plus the control height plus the spacing.
+    'After you create some or all of the controls, you can use the Edit menu to Select
+    'All of the output and then paste into your program.  You can also select just some
+    'of the output and copy and paste just that into your program.  You can also change
+    'the text of the controls before copying.
+    'The Clear All button will reset all variables and clear the texteditor. If you use
+    'this button, all indexing will be set to 1.
+
+    'I would suggest that a tkn is created and the program be added to the
+    'Setup - External Programs section so that it is available in the Run section.
+    'That will make it easy to use the program while writing your program and paste
+    'output into it.
+
+
